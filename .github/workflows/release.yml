@@ -1,0 +1,52 @@
+name: "Publish Release"
+
+on:
+  push:
+    # Workflow ini akan berjalan otomatis setiap kali kamu membuat tag baru (misal: v1.0.0)
+    tags:
+      - 'v*'
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "macos-latest" # Untuk build installer Mac (Intel & Apple Silicon)
+            args: "--target universal-apple-darwin"
+          - platform: "windows-latest" # Untuk build installer Windows (.msi & .exe)
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # Target universal ditambahkan agar Mac bisa menghasilkan satu binary untuk M1/M2/M3 sekaligus Intel
+          targets: ${{ matrix.platform == 'macos-latest' && 'universal-apple-darwin' || '' }}
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build Tauri Application
+        uses: tauri-apps/tauri-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Tamtek Downloader ${{ github.ref_name }}"
+          releaseBody: "Rilis otomatis dari GitHub Actions."
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
