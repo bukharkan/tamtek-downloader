@@ -2,7 +2,6 @@ name: "Publish Release"
 
 on:
   push:
-    # Workflow ini akan berjalan otomatis setiap kali kamu membuat tag baru (misal: v1.0.0)
     tags:
       - 'v*'
 
@@ -14,9 +13,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Kita ubah argumen Mac agar memerintahkan tauri-build merakit versi universal
           - platform: "macos-latest"
-            args: "--target universal-apple-darwin" 
+            args: "--target aarch64-apple-darwin" # 🎯 Kunci khusus untuk Apple Silicon (M1 ke atas)
           - platform: "windows-latest"
             args: ""
 
@@ -31,11 +29,11 @@ jobs:
           node-version: lts/*
           cache: 'npm'
 
-      # 👇 PERBAIKAN DI SEKSI RUST INI 👇
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin, x86_64-apple-darwin' || '' }}
+          # Server hanya mengunduh standard library yang kita butuhkan saja
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
 
       - name: Install frontend dependencies
         run: npm install
