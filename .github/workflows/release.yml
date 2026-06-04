@@ -14,9 +14,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "macos-latest" # Untuk build installer Mac (Intel & Apple Silicon)
-            args: "--target universal-apple-darwin"
-          - platform: "windows-latest" # Untuk build installer Windows (.msi & .exe)
+          # Kita ubah argumen Mac agar memerintahkan tauri-build merakit versi universal
+          - platform: "macos-latest"
+            args: "--target universal-apple-darwin" 
+          - platform: "windows-latest"
             args: ""
 
     runs-on: ${{ matrix.platform }}
@@ -30,11 +31,11 @@ jobs:
           node-version: lts/*
           cache: 'npm'
 
+      # 👇 PERBAIKAN DI SEKSI RUST INI 👇
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Target universal ditambahkan agar Mac bisa menghasilkan satu binary untuk M1/M2/M3 sekaligus Intel
-          targets: ${{ matrix.platform == 'macos-latest' && 'universal-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin, x86_64-apple-darwin' || '' }}
 
       - name: Install frontend dependencies
         run: npm install
