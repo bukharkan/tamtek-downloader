@@ -1,51 +1,32 @@
-name: "Publish Release"
-
+name: Build App
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
 
 jobs:
-  publish-tauri:
-    permissions:
-      contents: write
+  build-tauri:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: "macos-latest"
-            args: "--target aarch64-apple-darwin" # 🎯 Kunci khusus untuk Apple Silicon (M1 ke atas)
-          - platform: "windows-latest"
-            args: ""
-
+          - platform: 'windows-latest' # Build .exe
+          - platform: 'macos-latest'   # Build .app/dmg
     runs-on: ${{ matrix.platform }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
-          cache: 'npm'
-
-      - name: Install Rust stable
+          node-version: 20
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          # Server hanya mengunduh standard library yang kita butuhkan saja
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
-
-      - name: Install frontend dependencies
+      - name: Install Dependencies
         run: npm install
-
-      - name: Build Tauri Application
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Tauri
+        run: npm run tauri build
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Tamtek Downloader ${{ github.ref_name }}"
-          releaseBody: "Rilis otomatis dari GitHub Actions."
-          releaseDraft: true
-          prerelease: false
-          args: ${{ matrix.args }}
+          name: app-${{ matrix.platform }}
+          path: src-tauri/target/release/bundle/
